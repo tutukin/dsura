@@ -22,6 +22,23 @@ gulp.task('test', () => {
 });
 
 
+gulp.task('testRegistrator', () => {
+    return gulp.src(['test/registrator/**/*Test.js'], {read:false})
+    .pipe(plugins.mocha({
+        reporter: 'nyan',
+        require: ['./test/mocha-babel'],
+        timeout: 5000
+    }))
+    .on('error', plugins.util.log);
+});
+
+
+gulp.task('watch', () => {
+    let watchedFiles = ['test/registrator/**/*Test.js', 'test/support/**/*.js', 'src/registrator/**/*.js'];
+    gulp.watch(watchedFiles, ['testRegistrator']);
+});
+
+
 gulp.task('default', function () {
-    // default task is here
+    gulp.start('watch');
 });
