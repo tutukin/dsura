@@ -25,6 +25,7 @@ function addModels (models, storage) {
 function mkModel (name) {
     return {
         create: sinon.stub(),
+        findAll: sinon.stub(),
         $instance: mkInstance(name)
     };
 }

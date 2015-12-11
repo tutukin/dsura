@@ -11,12 +11,24 @@ const expect = T.expect;
 
 describe('registrator/registration', function () {
     beforeEach( () => {
-        this.storage = T.mock('storage', {models: 'EPerson'});
+        this.action = 'create';
+        this.storage = T.mock('storage', {models: 'EPerson AuthTable'});
         this.storage['@noCallThru'] = true;
 
         this.r = T.require('registrator', {
             './storage': this.storage
         });
+    });
+
+    beforeEach( () => {
+        let AuthTable = this.storage.AuthTable;
+        AuthTable.findAll.rejects(Error('incorrect query to AuthTable!'));
+        AuthTable.findAll
+            .withArgs( T.sinon.match({where:{
+                action: 'create',
+                resource: 'EPerson'
+            }}))
+            .resolves([{role:'librarian'}, {role: 'admin'}]);
     });
 
     afterEach( () => {
@@ -44,10 +56,9 @@ describe('registrator/registration', function () {
 
             context('then registrator registers a user', () => {
                 beforeEach( () => {
-                    // TODO: configure storage and mailer
                     let EPerson = this.storage.EPerson;
                     EPerson.create.resolves(EPerson.$instance);
-                    this.result = this.r.authorize(this.action, this.user, this.client)
+                    this.result = this.r.authorize(this.user, this.client, this.action)
                         .perform(this.data);
 
                     return this.result;
@@ -88,9 +99,31 @@ describe('registrator/registration', function () {
 
 
 
-    context('when the user is not a librarian', () => {
+    context('when the user is not a librarian, who uses a registered client', () => {
+        beforeEach( () => {
+            this.user = T.example('user', {roles: ['labrador']});
+            this.client = T.example('client');
+            this.data = T.example('EPersonData');
+        });
+
+        beforeEach( () => {
+            // Note: beyond Authorization everything is correct,
+            // and storage would respond with the created EPerson!
+            let EPerson = this.storage.EPerson;
+            EPerson.create.resolves(EPerson.$instance);
+        });
+
         context('then registrator responds with an error', () => {
-            //how
+            beforeEach( () => {
+                this.result = this.r.authorize(this.user, this.client, this.action)
+                    .perform(this.data);
+            });
+
+            it('should reject the request for registration with the AuthError', () => {
+                return expect(this.result).to.be.rejected
+                    .and.eventually.have.property('name')
+                    .that.equals('AuthError');
+            });
         });
     });
 });
