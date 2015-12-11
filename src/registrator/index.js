@@ -1,7 +1,12 @@
 "use strict";
 
+// TODO: this must not be here!!!!!!!!!!!
+const GROUP_ID = 6;
+
+const mailer = require('./mailer');
 const storage = require('./storage');
 const model = require('./model')(storage);
+const uuid = require('node-uuid');
 
 const E = require('./error');
 
@@ -30,11 +35,24 @@ async function _perform (user, client, action, data) {
 
     if ( matchedRoles.length === 0 ) throw E.AuthError();
 
-    return model('EPerson').create({
+    let eperson = await model('EPerson').create({
         email: data.email,
         firstname: data.firstname,
         lastname: data.lastname,
         language: 'ru',
         can_log_in: true
     });
+
+    let invitation = await model('Invitation').create({
+        email: data.email,
+        token: uuid.v1().replace(/-/g, '')
+    });
+
+    let group = eperson.addEPersonGroup({
+        group_id: GROUP_ID
+    });
+
+    let res = mailer.sendInvitation(data.email, invitation.token);
+
+    return eperson;
 }

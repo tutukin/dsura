@@ -12,11 +12,14 @@ const expect = T.expect;
 describe('registrator/registration', function () {
     beforeEach( () => {
         this.action = 'create';
-        this.storage = T.mock('storage', {models: 'EPerson AuthTable'});
-        this.storage['@noCallThru'] = true;
+        this.storage = T.mock('storage', {models: 'EPerson AuthTable Invitation'});
+        this.mailer = T.mock('mailer');
+
+        this.mailer['@noCallThru'] = this.storage['@noCallThru'] = true;
 
         this.r = T.require('registrator', {
-            './storage': this.storage
+            './storage': this.storage,
+            './mailer': this.mailer
         });
     });
 
@@ -57,7 +60,10 @@ describe('registrator/registration', function () {
             context('then registrator registers a user', () => {
                 beforeEach( () => {
                     let EPerson = this.storage.EPerson;
+                    let Invitation = this.storage.Invitation;
+
                     EPerson.create.resolves(EPerson.$instance);
+                    Invitation.create.resolves(Invitation.$instance);
                     this.result = this.r.authorize(this.user, this.client, this.action)
                         .perform(this.data);
 
@@ -74,6 +80,30 @@ describe('registrator/registration', function () {
                         lastname: this.data.lastname,
                         can_log_in: true
                     }) );
+                });
+
+                it('should generate Invitation for the reader', () => {
+                    let Invitation = this.storage.Invitation;
+
+                    expect(Invitation.create).calledOnce
+                        .and.calledWithExactly(T.sinon.match({
+                            email: this.data.email,
+                            token: T.sinon.match.string
+                        }));
+                });
+
+                it('should add the reader to "readers" groups', () => {
+                    let EPerson = this.storage.EPerson;
+
+                    expect(EPerson.$instance.addEPersonGroup).calledOnce
+                        .and.calledWithExactly(T.sinon.match({
+                            group_id: T.sinon.match.number
+                        }));
+                });
+
+                it('should send by email an invitation to the user', () => {
+                    expect(this.mailer.sendInvitation).calledOnce
+                        .and.calledWithExactly(this.data.email, this.storage.Invitation.$instance.token);
                 });
 
                 it('should be resolved with the reader instance', () => {

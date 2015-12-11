@@ -3,6 +3,19 @@
 const sinon = require('sinon');
 const sap = require('sinon-as-promised');
 
+var k = 1;
+
+const RELATIONS = {
+    EPerson: {
+        addEPersonGroup: 'stub',
+        eperson_id: k++
+    },
+
+    Invitation: {
+        token: 'aaaaa-bbbbb-cccccc-0' + k++ 
+    }
+};
+
 module.exports = function (options) {
     options = options || {};
     let storage = {};
@@ -31,5 +44,27 @@ function mkModel (name) {
 }
 
 function mkInstance (name) {
-    return {a: name};
+    let instance = {
+        // common instance interface
+    };
+
+    // relations
+    if ( RELATIONS[name] ) {
+        instance = extendInstance(RELATIONS[name], instance);
+    }
+
+    return instance;
 };
+
+
+function extendInstance (ext, instance) {
+    return Object.keys(ext).reduce( (obj, key) => {
+        let value = ext[key];
+
+        obj[key] = value === 'stub' ?
+            sinon.stub() :
+            value;
+
+        return obj;
+    }, instance);
+}
