@@ -11,6 +11,21 @@ gulp.task('build', () => {
     .pipe(gulp.dest('lib'));
 });
 
+gulp.task('docs', ['build'], () => {
+    let jsdoc = plugins.jsdoc;
+    let plumber = plugins.plumber;
+
+    let infos = {
+        name: 'dsura',
+        description: 'Lasciate ogni speranza, voi ch’entrate',
+        version: '0.0.1'
+    };
+
+    gulp.src('lib/**/*.js')
+    .pipe(plumber())
+    .pipe( jsdoc.parser(infos))
+    .pipe( jsdoc.generator('./docs/dev'));
+});
 
 gulp.task('test', () => {
     return gulp.src('test/**/*Test.js', {read: false})

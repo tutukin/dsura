@@ -10,10 +10,26 @@ const uuid = require('node-uuid');
 
 const E = require('./error');
 
+/**
+    @module registration
+
+    authorize user and perform action
+*/
 module.exports = {
     authorize: authorize
 };
 
+
+/**
+    @param {EPerson} user - EPerson instance
+    @param {Client} client - Client instance
+    @param {String} action - action to perform
+
+    @returns {Promise.<EPerson|Error>} a reader just created
+
+    Errors:
+    - AuthError - access forbidden
+*/
 function authorize (user, client, action) {
     return {
         perform: (data) => _perform(user, client, action, data)

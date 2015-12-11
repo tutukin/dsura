@@ -106,6 +106,10 @@ describe('registrator/registration', function () {
                         .and.calledWithExactly(this.data.email, this.storage.Invitation.$instance.token);
                 });
 
+                xit('should keep user invitations history', () => {
+                    // implement
+                });
+
                 it('should be resolved with the reader instance', () => {
                     return expect(this.result)
                         .to.eventually.equal(this.storage.EPerson.$instance);
