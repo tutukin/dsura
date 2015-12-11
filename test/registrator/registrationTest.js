@@ -9,13 +9,19 @@ const expect = T.expect;
     Providing her email and name
 */
 
-describe('registrator/registration', () => {
+describe('registrator/registration', function () {
     beforeEach( () => {
-        this.r = T.inject('registrator');
+        this.storage = T.mock('storage', {models: 'EPerson'});
+        this.storage['@noCallThru'] = true;
+
+        this.r = T.require('registrator', {
+            './storage': this.storage
+        });
     });
 
     afterEach( () => {
-        T.reject('registrator');
+        T.retreat('registrator');
+        T.retreat('registrator/model');
     });
 
     it('should exist', () => {
@@ -25,10 +31,44 @@ describe('registrator/registration', () => {
 
 
 
-    context('when the user is a librarian', () => {
+    context('when the user is a librarian and uses a registered client', () => {
+        beforeEach( () => {
+            this.user = T.example('user', {roles: ['librarian']});
+            this.client = T.example('client');
+        });
+
         context('given the user provides valid email and password of a reader', () => {
+            beforeEach( () => {
+                this.data = T.example('EPersonData');
+            });
+
             context('then registrator registers a user', () => {
-                //how
+                beforeEach( () => {
+                    // TODO: configure storage and mailer
+                    let EPerson = this.storage.EPerson;
+                    EPerson.create.resolves(EPerson.$instance);
+                    this.result = this.r.authorize(this.action, this.user, this.client)
+                        .perform(this.data);
+
+                    return this.result;
+                });
+
+                it('should insert new reader to the storage', () => {
+                    let EPerson = this.storage.EPerson;
+                    expect(EPerson.create).calledOnce
+                    .and.calledWithExactly( T.sinon.match({
+                        email: this.data.email,
+                        language: 'ru',
+                        firstname: this.data.firstname,
+                        lastname: this.data.lastname,
+                        can_log_in: true
+                    }) );
+                });
+
+                it('should be resolved with the reader instance', () => {
+                    return expect(this.result)
+                        .to.eventually.equal(this.storage.EPerson.$instance);
+                });
             });
 
             context('and the storage responds with an error', () => {
